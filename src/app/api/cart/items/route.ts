@@ -1,6 +1,13 @@
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth";
-import { getOrCreateCart, calculateCartTotals } from "@/lib/cart";
+import {
+  getOrCreateCart,
+  calculateCartTotals,
+  addToCartCookie,
+  updateCartCookie,
+} from "@/lib/cart";
+import { isDatabaseAvailable } from "@/lib/db";
+import { getStaticProducts } from "@/data/products";
 import { prisma } from "@/lib/prisma";
 import { apiError, apiSuccess } from "@/lib/api";
 import { cartItemSchema } from "@/lib/validations";
@@ -15,6 +22,18 @@ export async function POST(request: NextRequest) {
     }
 
     const { productId, quantity } = parsed.data;
+
+    if (!(await isDatabaseAvailable())) {
+      const product = getStaticProducts().find((p) => p.id === productId);
+      if (!product || !product.inStock) {
+        return apiError("Product not available", 404);
+      }
+      await addToCartCookie(productId, quantity);
+      const cart = await getOrCreateCart();
+      const totals = calculateCartTotals(cart.items);
+      return apiSuccess({ message: "Added to cart", totals });
+    }
+
     const user = await getAuthUser();
     const cart = await getOrCreateCart(user?.userId);
 
@@ -23,8 +42,14 @@ export async function POST(request: NextRequest) {
       return apiError("Product not available", 404);
     }
 
+    if (!("id" in cart) || typeof cart.id !== "string") {
+      return apiError("Cart error", 500);
+    }
+
+    const cartId = cart.id;
+
     const existing = await prisma.cartItem.findUnique({
-      where: { cartId_productId: { cartId: cart.id, productId } },
+      where: { cartId_productId: { cartId, productId } },
     });
 
     if (existing) {
@@ -34,7 +59,7 @@ export async function POST(request: NextRequest) {
       });
     } else {
       await prisma.cartItem.create({
-        data: { cartId: cart.id, productId, quantity },
+        data: { cartId, productId, quantity },
       });
     }
 
@@ -56,11 +81,27 @@ export async function PATCH(request: NextRequest) {
       return apiError("Invalid quantity");
     }
 
+    if (!(await isDatabaseAvailable())) {
+      const cart = await getOrCreateCart();
+      const item = cart.items.find((i) => i.id === itemId);
+      if (!item) return apiError("Item not found", 404);
+      await updateCartCookie(item.productId, quantity);
+      const updatedCart = await getOrCreateCart();
+      const totals = calculateCartTotals(updatedCart.items);
+      return apiSuccess({ totals });
+    }
+
     const user = await getAuthUser();
     const cart = await getOrCreateCart(user?.userId);
 
+    if (!("id" in cart) || typeof cart.id !== "string") {
+      return apiError("Cart error", 500);
+    }
+
+    const cartId = cart.id;
+
     const item = await prisma.cartItem.findFirst({
-      where: { id: itemId, cartId: cart.id },
+      where: { id: itemId, cartId },
     });
 
     if (!item) return apiError("Item not found", 404);
@@ -86,11 +127,27 @@ export async function DELETE(request: NextRequest) {
 
     if (!itemId) return apiError("Item ID required");
 
+    if (!(await isDatabaseAvailable())) {
+      const cart = await getOrCreateCart();
+      const item = cart.items.find((i) => i.id === itemId);
+      if (!item) return apiError("Item not found", 404);
+      await updateCartCookie(item.productId, 0);
+      const updatedCart = await getOrCreateCart();
+      const totals = calculateCartTotals(updatedCart.items);
+      return apiSuccess({ totals });
+    }
+
     const user = await getAuthUser();
     const cart = await getOrCreateCart(user?.userId);
 
+    if (!("id" in cart) || typeof cart.id !== "string") {
+      return apiError("Cart error", 500);
+    }
+
+    const cartId = cart.id;
+
     await prisma.cartItem.deleteMany({
-      where: { id: itemId, cartId: cart.id },
+      where: { id: itemId, cartId },
     });
 
     const updatedCart = await getOrCreateCart(user?.userId);

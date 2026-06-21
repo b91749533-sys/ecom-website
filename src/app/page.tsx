@@ -1,15 +1,13 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getProducts } from "@/lib/db";
 import ProductCard from "@/components/ProductCard";
 import { ArrowRight, Sparkles, Shield, Truck } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const featured = await prisma.product.findMany({
-    where: { featured: true, inStock: true },
-    take: 6,
-  });
+  const all = await getProducts({ featured: true });
+  const featured = all.filter((p) => p.featured).slice(0, 6);
 
   return (
     <>

@@ -1,5 +1,6 @@
 import { getAuthUser } from "@/lib/auth";
-import { getOrCreateCart, calculateCartTotals } from "@/lib/cart";
+import { getOrCreateCart, calculateCartTotals, clearCookieCart } from "@/lib/cart";
+import { isDatabaseAvailable } from "@/lib/db";
 import { prisma } from "@/lib/prisma";
 import { apiError, apiSuccess } from "@/lib/api";
 
@@ -33,8 +34,17 @@ export async function GET() {
 
 export async function DELETE() {
   try {
+    if (!(await isDatabaseAvailable())) {
+      await clearCookieCart();
+      return apiSuccess({ message: "Cart cleared" });
+    }
+
     const user = await getAuthUser();
     const cart = await getOrCreateCart(user?.userId);
+
+    if (!("id" in cart) || typeof cart.id !== "string") {
+      return apiError("Cart error", 500);
+    }
 
     await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
 

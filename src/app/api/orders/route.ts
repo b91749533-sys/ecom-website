@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth";
-import { getOrCreateCart, calculateCartTotals } from "@/lib/cart";
+import { getOrCreateCart, calculateCartTotals, clearCookieCart } from "@/lib/cart";
+import { isDatabaseAvailable } from "@/lib/db";
 import { prisma } from "@/lib/prisma";
 import { apiError, apiSuccess, generateOrderNumber } from "@/lib/api";
 import { checkoutSchema } from "@/lib/validations";
@@ -22,10 +23,30 @@ export async function POST(request: NextRequest) {
     }
 
     const totals = calculateCartTotals(cart.items);
+    const orderNumber = generateOrderNumber();
+
+    if (!(await isDatabaseAvailable())) {
+      await clearCookieCart();
+      return apiSuccess({
+        order: {
+          orderNumber,
+          email: parsed.data.email,
+          name: parsed.data.name,
+          total: totals.total,
+          status: "confirmed",
+          items: cart.items.map((item) => ({
+            name: item.product.name,
+            brand: item.product.brand,
+            quantity: item.quantity,
+            price: item.product.price,
+          })),
+        },
+      });
+    }
 
     const order = await prisma.order.create({
       data: {
-        orderNumber: generateOrderNumber(),
+        orderNumber,
         userId: user?.userId,
         email: parsed.data.email,
         name: parsed.data.name,
@@ -53,7 +74,9 @@ export async function POST(request: NextRequest) {
       include: { items: true },
     });
 
-    await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+    if ("id" in cart && typeof cart.id === "string") {
+      await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+    }
 
     return apiSuccess({ order });
   } catch {
@@ -65,6 +88,10 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUser();
     if (!user) return apiError("Unauthorized", 401);
+
+    if (!(await isDatabaseAvailable())) {
+      return apiSuccess({ orders: [] });
+    }
 
     const { searchParams } = new URL(request.url);
     const orderNumber = searchParams.get("orderNumber");
@@ -83,8 +110,7 @@ export async function GET(request: NextRequest) {
       return apiSuccess({ order });
     }
 
-    const where =
-      user.role === "admin" ? {} : { userId: user.userId };
+    const where = user.role === "admin" ? {} : { userId: user.userId };
 
     const orders = await prisma.order.findMany({
       where,

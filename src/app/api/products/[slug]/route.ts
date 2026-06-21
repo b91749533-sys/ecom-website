@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getProductBySlug, getProducts } from "@/lib/db";
 import { apiError, apiSuccess } from "@/lib/api";
 
 export async function GET(
@@ -8,23 +8,16 @@ export async function GET(
 ) {
   try {
     const { slug } = await params;
-
-    const product = await prisma.product.findUnique({
-      where: { slug },
-    });
+    const product = await getProductBySlug(slug);
 
     if (!product) {
       return apiError("Product not found", 404);
     }
 
-    const related = await prisma.product.findMany({
-      where: {
-        category: product.category,
-        id: { not: product.id },
-        inStock: true,
-      },
-      take: 4,
-    });
+    const all = await getProducts({ category: product.category });
+    const related = all
+      .filter((p) => p.slug !== product.slug)
+      .slice(0, 4);
 
     return apiSuccess({ product, related });
   } catch {

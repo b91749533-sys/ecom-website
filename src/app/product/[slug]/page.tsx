@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { getProductBySlug, getProducts } from "@/lib/db";
 import ProductDetail from "@/components/ProductDetail";
 
 export const dynamic = "force-dynamic";
@@ -11,17 +11,13 @@ export default async function ProductPage({
 }) {
   const { slug } = await params;
 
-  const product = await prisma.product.findUnique({ where: { slug } });
+  const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const related = await prisma.product.findMany({
-    where: {
-      category: product.category,
-      id: { not: product.id },
-      inStock: true,
-    },
-    take: 4,
-  });
+  const all = await getProducts({ category: product.category });
+  const related = all
+    .filter((p) => p.slug !== product.slug)
+    .slice(0, 4);
 
   return <ProductDetail product={product} related={related} />;
 }

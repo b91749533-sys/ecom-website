@@ -1,5 +1,10 @@
 # Lumière Parfums
 
+**By Youssef Manssouri**
+
+> **Live website:** [https://lumiere-parfums.vercel.app](https://lumiere-parfums.vercel.app)  
+> The GitHub repo page shows this README — not the actual website. Use the link above to visit the store.
+
 A professional luxury perfume e-commerce website with a full Next.js backend.
 
 ## Features
@@ -16,10 +21,11 @@ A professional luxury perfume e-commerce website with a full Next.js backend.
 
 - **Frontend:** Next.js 15, React 19, Tailwind CSS 4
 - **Backend:** Next.js API Routes
-- **Database:** SQLite with Prisma ORM
+- **Database:** SQLite with Prisma ORM (local) / cookie fallback (Vercel)
 - **Auth:** JWT with HTTP-only cookies
+- **Hosting:** Vercel
 
-## Getting Started
+## Getting Started (Local)
 
 ```bash
 npm install
@@ -34,22 +40,7 @@ Open [http://localhost:3000](http://localhost:3000)
 - Email: `admin@lumiere.com`
 - Password: `admin123`
 
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/products` | List products (search, filter, sort) |
-| GET | `/api/products/[slug]` | Product details |
-| GET/DELETE | `/api/cart` | Get or clear cart |
-| POST/PATCH/DELETE | `/api/cart/items` | Manage cart items |
-| POST | `/api/orders` | Place order |
-| GET | `/api/orders` | List orders |
-| POST | `/api/auth` | Login / register |
-| GET | `/api/admin/stats` | Admin dashboard stats |
-
 ## Products
-
-All prices reflect authorized US retail MSRP:
 
 | Fragrance | Price |
 |-----------|-------|
