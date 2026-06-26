@@ -3,7 +3,7 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "env": {
-    "CRM_API_URL": "https://good-donkeys-lay.loca.lt",
+    "CRM_API_URL": "https://lumiere-parfums-crm-sync.loca.lt",
     "CRM_SYNC_TOKEN": "secure-crm-sync-token-987654"
   }
 }
