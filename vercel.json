@@ -1,5 +1,9 @@
 {
   "buildCommand": "prisma generate && next build",
   "installCommand": "npm install",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "env": {
+    "CRM_API_URL": "https://good-donkeys-lay.loca.lt",
+    "CRM_SYNC_TOKEN": "secure-crm-sync-token-987654"
+  }
 }
