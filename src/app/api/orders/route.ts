@@ -28,6 +28,32 @@ export async function POST(request: NextRequest) {
 
     if (!(await isDatabaseAvailable())) {
       await clearCookieCart();
+
+      // Sync order to CRM in the background even if local database is not available
+      syncOrderToCRM({
+        orderNumber,
+        email: parsed.data.email,
+        name: parsed.data.name,
+        address: parsed.data.address,
+        city: parsed.data.city,
+        state: parsed.data.state,
+        zip: parsed.data.zip,
+        country: parsed.data.country || "US",
+        status: "confirmed",
+        subtotal: totals.subtotal,
+        shipping: totals.shipping,
+        tax: totals.tax,
+        total: totals.total,
+        items: cart.items.map((item) => ({
+          productId: item.productId,
+          name: item.product.name,
+          brand: item.product.brand,
+          price: item.product.price,
+          quantity: item.quantity,
+          image: item.product.image || "",
+        })),
+      }).catch((err) => console.error("Order sync to CRM failed in fallback mode:", err));
+
       return apiSuccess({
         order: {
           orderNumber,
