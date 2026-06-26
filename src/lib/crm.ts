@@ -3,27 +3,22 @@ const CRM_SYNC_TOKEN = process.env.CRM_SYNC_TOKEN || "secure-crm-sync-token-9876
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function postToCRM(endpoint: string, payload: any) {
-  try {
-    const res = await fetch(`${CRM_API_URL}${endpoint}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Sync-Token": CRM_SYNC_TOKEN,
-        "bypass-tunnel-reminder": "true",
-        "ngrok-skip-browser-warning": "true",
-      },
-      body: JSON.stringify(payload),
-    });
+  const res = await fetch(`${CRM_API_URL}${endpoint}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Sync-Token": CRM_SYNC_TOKEN,
+      "bypass-tunnel-reminder": "true",
+      "ngrok-skip-browser-warning": "true",
+    },
+    body: JSON.stringify(payload),
+  });
 
-    if (!res.ok) {
-      console.error(`CRM Sync failed for ${endpoint}. Status: ${res.status}`);
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.error(`Network error syncing data to CRM at ${endpoint}:`, err);
-    return false;
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => "no-body");
+    throw new Error(`CRM Sync failed for ${endpoint}. Status: ${res.status}, Response: ${bodyText}`);
   }
+  return true;
 }
 
 // 1. Sync completed orders instantly
