@@ -5,6 +5,7 @@ import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import ActivityTracker from "@/components/ActivityTracker";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -33,6 +34,7 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col">
         <AuthProvider>
           <CartProvider>
+            <ActivityTracker />
             <Header />
             <main className="flex-1">{children}</main>
             <Footer />
@@ -42,3 +44,4 @@ export default function RootLayout({
     </html>
   );
 }
+

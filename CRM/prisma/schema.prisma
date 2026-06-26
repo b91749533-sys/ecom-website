@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("CRM_DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String
+  password  String
+  role      String     @default("support") // admin, manager, support
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  auditLogs AuditLog[]
+}
+
+model Customer {
+  id             String            @id @default(cuid())
+  email          String            @unique
+  name           String
+  phone          String?
+  address        String?
+  city           String?
+  state          String?
+  zip            String?
+  country        String            @default("US")
+  totalSpent     Float             @default(0.0)
+  orderCount     Int               @default(0)
+  lastPurchaseAt DateTime?
+  clv            Float             @default(0.0) // Customer Lifetime Value
+  notes          String            @default("") // Staff notes
+  tags           String            @default("") // Comma-separated tags
+  status         String            @default("new") // new, active, loyal, inactive, vip
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  orders         Order[]
+}
+
+model Order {
+  id                 String      @id @default(cuid())
+  orderNumber        String      @unique
+  customerId         String?
+  email              String
+  name               String
+  address            String
+  city               String
+  state              String
+  zip                String
+  country            String      @default("US")
+  status             String      @default("pending") // pending, processing, shipped, delivered, cancelled, refunded
+  paymentStatus      String      @default("unpaid") // paid, unpaid, partially_refunded, refunded
+  fulfillmentStatus  String      @default("unfulfilled") // unfulfilled, processing, fulfilled
+  subtotal           Float
+  shipping           Float
+  tax                Float
+  total              Float
+  shippingTracking   String?
+  shippingProvider   String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  customer           Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items              OrderItem[]
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  name      String
+  brand     String
+  price     Float
+  quantity  Int
+  image     String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+}
+
+model Product {
+  id                 String      @id @default(cuid())
+  slug               String      @unique
+  name               String
+  brand              String
+  description        String
+  notes              String
+  category           String
+  gender             String
+  concentration      String
+  size               String
+  price              Float
+  image              String
+  rating             Float       @default(4.5)
+  reviewCount        Int         @default(0)
+  featured           Boolean     @default(false)
+  inStock            Boolean     @default(true)
+  stockLevel         Int         @default(50) // CRM-only field for tracking inventory level
+  minStockThreshold  Int         @default(10) // Threshold below which inventory alerts trigger
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  orderItems         OrderItem[]
+}
+
+model Cart {
+  id            String   @id @default(cuid())
+  sessionId     String?  @unique
+  customerEmail String?
+  items         String   // JSON string containing cart item details
+  value         Float    @default(0.0)
+  isCheckedOut  Boolean  @default(false)
+  emailSent     Boolean  @default(false) // recovery email sent
+  lastActive    DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model BrowsingHistory {
+  id            String   @id @default(cuid())
+  customerEmail String?
+  page          String
+  duration      Int      @default(0) // Duration in seconds
+  device        String?
+  browser       String?
+  createdAt     DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  userName  String
+  action    String
+  details   String   // JSON string or long description of change
+  ipAddress String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model DiscountCampaign {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  type       String   // percentage, fixed
+  value      Float
+  expiration DateTime
+  active     Boolean  @default(true)
+  usageCount Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model EmailCampaign {
+  id          String    @id @default(cuid())
+  subject     String
+  content     String
+  segmentId   String    // e.g. "all", "vip", "churned", "abandoned_cart"
+  sentAt      DateTime?
+  openRate    Float     @default(0.0)
+  clickRate   Float     @default(0.0)
+  conversions Int       @default(0)
+  status      String    @default("draft") // draft, sent
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model WebhookConfig {
+  id        String   @id @default(cuid())
+  url       String
+  events    String   // comma-separated list, e.g. "order.created,customer.updated"
+  active    Boolean  @default(true)
+  secret    String
+  createdAt DateTime @default(now())
+}
+
+model WebhookLog {
+  id           String   @id @default(cuid())
+  url          String
+  event        String
+  payload      String   // JSON string sent
+  statusCode   Int?
+  success      Boolean
+  responseTime Int      // Response time in ms
+  createdAt    DateTime @default(now())
+}
+
+model IntegrationConfig {
+  id          String   @id @default(cuid())
+  provider    String   @unique // e.g. stripe, sendgrid, shippo
+  credentials String   // JSON configuration fields, masked or mock encrypted
+  enabled     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

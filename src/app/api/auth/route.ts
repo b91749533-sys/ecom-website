@@ -64,6 +64,13 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // Sync customer registration to CRM in the background
+      const { syncCustomerToCRM } = await import("@/lib/crm");
+      syncCustomerToCRM({
+        email: user.email,
+        name: user.name,
+      }).catch((err) => console.error("Customer sync to CRM failed:", err));
+
       const token = await signToken({
         userId: user.id,
         email: user.email,

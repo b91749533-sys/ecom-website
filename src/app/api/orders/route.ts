@@ -5,6 +5,7 @@ import { isDatabaseAvailable } from "@/lib/db";
 import { prisma } from "@/lib/prisma";
 import { apiError, apiSuccess, generateOrderNumber } from "@/lib/api";
 import { checkoutSchema } from "@/lib/validations";
+import { syncOrderToCRM } from "@/lib/crm";
 
 export async function POST(request: NextRequest) {
   try {
@@ -78,8 +79,34 @@ export async function POST(request: NextRequest) {
       await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
     }
 
+    // Sync order to CRM in the background
+    syncOrderToCRM({
+      orderNumber: order.orderNumber,
+      email: order.email,
+      name: order.name,
+      address: order.address,
+      city: order.city,
+      state: order.state,
+      zip: order.zip,
+      country: order.country,
+      status: order.status,
+      subtotal: order.subtotal,
+      shipping: order.shipping,
+      tax: order.tax,
+      total: order.total,
+      items: order.items.map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        brand: item.brand,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image,
+      })),
+    }).catch((err) => console.error("Order sync to CRM failed:", err));
+
     return apiSuccess({ order });
-  } catch {
+  } catch (err) {
+    console.error(err);
     return apiError("Checkout failed", 500);
   }
 }
