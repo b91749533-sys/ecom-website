@@ -29,9 +29,10 @@ export async function POST(request: NextRequest) {
     if (!(await isDatabaseAvailable())) {
       await clearCookieCart();
 
+      let syncResult = { success: true, error: null as string | null };
       // Sync order to CRM (awaited to ensure serverless completion)
       try {
-        await syncOrderToCRM({
+        const ok = await syncOrderToCRM({
           orderNumber,
           email: parsed.data.email,
           name: parsed.data.name,
@@ -54,8 +55,11 @@ export async function POST(request: NextRequest) {
             image: item.product.image || "",
           })),
         });
+        if (!ok) {
+          syncResult = { success: false, error: "syncOrderToCRM returned false" };
+        }
       } catch (err) {
-        console.error("Order sync to CRM failed in fallback mode:", err);
+        syncResult = { success: false, error: err instanceof Error ? err.message : String(err) };
       }
 
       return apiSuccess({
@@ -72,6 +76,7 @@ export async function POST(request: NextRequest) {
             price: item.product.price,
           })),
         },
+        sync: syncResult
       });
     }
 
