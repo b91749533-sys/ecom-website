@@ -101,12 +101,15 @@ export async function POST(request: NextRequest) {
       const { isDatabaseAvailable } = await import("@/lib/db");
       if (!(await isDatabaseAvailable())) {
         const mockUserId = "usr_" + Math.random().toString(36).substring(2, 11);
-        
         const { syncCustomerToCRM } = await import("@/lib/crm");
-        syncCustomerToCRM({
-          email: parsed.data.email,
-          name: parsed.data.name,
-        }).catch((err) => console.error("Customer sync to CRM failed (fallback):", err));
+        try {
+          await syncCustomerToCRM({
+            email: parsed.data.email,
+            name: parsed.data.name,
+          });
+        } catch (err) {
+          console.error("Customer sync to CRM failed (fallback):", err);
+        }
 
         const token = await signToken({
           userId: mockUserId,
@@ -144,13 +147,16 @@ export async function POST(request: NextRequest) {
           password: hashedPassword,
         },
       });
-
-      // Sync customer registration to CRM in the background
+      // Sync customer registration to CRM (awaited to ensure serverless completion)
       const { syncCustomerToCRM } = await import("@/lib/crm");
-      syncCustomerToCRM({
-        email: user.email,
-        name: user.name,
-      }).catch((err) => console.error("Customer sync to CRM failed:", err));
+      try {
+        await syncCustomerToCRM({
+          email: user.email,
+          name: user.name,
+        });
+      } catch (err) {
+        console.error("Customer sync to CRM failed:", err);
+      }
 
       const token = await signToken({
         userId: user.id,
