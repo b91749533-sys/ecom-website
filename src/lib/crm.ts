@@ -9,6 +9,8 @@ async function postToCRM(endpoint: string, payload: any) {
       headers: {
         "Content-Type": "application/json",
         "X-Sync-Token": CRM_SYNC_TOKEN,
+        "bypass-tunnel-reminder": "true",
+        "ngrok-skip-browser-warning": "true",
       },
       body: JSON.stringify(payload),
     });
