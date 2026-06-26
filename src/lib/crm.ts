@@ -1,7 +1,7 @@
 const CRM_API_URL = process.env.CRM_API_URL || "http://localhost:3001";
 const CRM_SYNC_TOKEN = process.env.CRM_SYNC_TOKEN || "secure-crm-sync-token-987654";
 
-// Helper to make secure POST requests to CRM sync APIs
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function postToCRM(endpoint: string, payload: any) {
   try {
     const res = await fetch(`${CRM_API_URL}${endpoint}`, {

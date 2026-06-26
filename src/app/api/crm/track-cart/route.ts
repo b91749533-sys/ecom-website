@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { getOrCreateCart, calculateCartTotals } from "@/lib/cart";
 import { syncCartToCRM } from "@/lib/crm";

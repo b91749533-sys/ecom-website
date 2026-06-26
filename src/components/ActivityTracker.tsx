@@ -74,6 +74,7 @@ export default function ActivityTracker() {
       const timeSpent = Date.now() - startTimeRef.current;
       trackActivity(lastPathnameRef.current, timeSpent);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   // Handle page unload (browser close or tab close)
